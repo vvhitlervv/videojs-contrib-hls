@@ -855,8 +855,6 @@ export default class SegmentLoader extends videojs.EventTarget {
       segmentInfo.timestampOffset -= startTime;
     }
 
-console.time('decrypting');
-
     if (segment.key) {
       // this is an encrypted segment
       // incrementally decrypt the segment
@@ -883,7 +881,6 @@ console.time('decrypting');
   handleSegment_() {
     let segmentInfo;
     let segment;
-console.timeEnd('decrypting');
 
     this.state = 'APPENDING';
     segmentInfo = this.pendingSegment_;
@@ -912,7 +909,6 @@ console.timeEnd('decrypting');
 
     segmentInfo.byteLength = segmentInfo.bytes.byteLength;
 
-console.time('appending');
     this.sourceUpdater_.appendBuffer(segmentInfo.bytes,
                                      this.handleUpdateEnd_.bind(this));
   }
@@ -927,8 +923,6 @@ console.time('appending');
   handleUpdateEnd_() {
     let segmentInfo = this.pendingSegment_;
     let currentTime = this.currentTime_();
-
-console.timeEnd('appending');
 
     this.pendingSegment_ = null;
     this.recordThroughput_(segmentInfo);
