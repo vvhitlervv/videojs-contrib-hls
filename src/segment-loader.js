@@ -789,6 +789,8 @@ export default class SegmentLoader extends videojs.EventTarget {
         return this.trigger('error');
       }
 
+      segment.key.bytes = new Uint8Array(request.response);
+/*
       view = new DataView(request.response);
       segment.key.bytes = new Uint32Array([
         view.getUint32(0),
@@ -796,7 +798,7 @@ export default class SegmentLoader extends videojs.EventTarget {
         view.getUint32(8),
         view.getUint32(12)
       ]);
-
+*/
       // if the media sequence is greater than 2^32, the IV will be incorrect
       // assuming 10s segments, that would be about 1300 years
       segment.key.iv = segment.key.iv || new Uint32Array([
@@ -853,6 +855,8 @@ export default class SegmentLoader extends videojs.EventTarget {
       segmentInfo.timestampOffset -= startTime;
     }
 
+console.time('decrypting');
+
     if (segment.key) {
       // this is an encrypted segment
       // incrementally decrypt the segment
@@ -879,6 +883,7 @@ export default class SegmentLoader extends videojs.EventTarget {
   handleSegment_() {
     let segmentInfo;
     let segment;
+console.timeEnd('decrypting');
 
     this.state = 'APPENDING';
     segmentInfo = this.pendingSegment_;
@@ -907,6 +912,7 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     segmentInfo.byteLength = segmentInfo.bytes.byteLength;
 
+console.time('appending');
     this.sourceUpdater_.appendBuffer(segmentInfo.bytes,
                                      this.handleUpdateEnd_.bind(this));
   }
@@ -921,6 +927,8 @@ export default class SegmentLoader extends videojs.EventTarget {
   handleUpdateEnd_() {
     let segmentInfo = this.pendingSegment_;
     let currentTime = this.currentTime_();
+
+console.timeEnd('appending');
 
     this.pendingSegment_ = null;
     this.recordThroughput_(segmentInfo);
