@@ -5,7 +5,7 @@ import Ranges from './ranges';
 import {getMediaIndexForTime_ as getMediaIndexForTime, duration} from './playlist';
 import videojs from 'video.js';
 import SourceUpdater from './source-updater';
-import {Decrypter} from 'aes-decrypter';
+import decrypter from 'aes-decrypter';
 import mp4probe from 'mux.js/lib/mp4/probe';
 import Config from './config';
 import window from 'global/window';
@@ -861,14 +861,14 @@ console.time('decrypting');
       // this is an encrypted segment
       // incrementally decrypt the segment
       /* eslint-disable no-new, handle-callback-err */
-      new Decrypter(segmentInfo.encryptedBytes,
-                    segment.key.bytes,
-                    segment.key.iv,
-                    (function(err, bytes) {
-                      // err always null
-                      segmentInfo.bytes = bytes;
-                      this.handleSegment_();
-                    }).bind(this));
+      decrypter(segmentInfo.encryptedBytes,
+                segment.key.bytes,
+                segment.key.iv,
+                (function(err, bytes) {
+                  // err always null
+                  segmentInfo.bytes = bytes;
+                  this.handleSegment_();
+                }).bind(this));
       /* eslint-enable */
     } else {
       this.handleSegment_();
