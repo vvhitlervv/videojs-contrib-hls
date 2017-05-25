@@ -11,6 +11,7 @@ import SyncController from './sync-controller';
 import { translateLegacyCodecs } from 'videojs-contrib-media-sources/es5/codec-utils';
 import worker from 'webworkify';
 import Decrypter from './decrypter-worker';
+import Config from './config';
 
 let Hls;
 
@@ -544,7 +545,29 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.mainSegmentLoader_.on('bandwidthupdate', () => {
       // figure out what stream the next segment should be downloaded from
       // with the updated bandwidth information
-      this.masterPlaylistLoader_.media(this.selectPlaylist());
+      const nextPlaylist = this.selectPlaylist();
+      const currentPlaylist = this.masterPlaylistLoader_.media();
+      const buffered = this.tech_.buffered();
+      const forwardBuffer = buffered.length ?
+        buffered.end(buffered.length - 1) - this.tech_.currentTime() : 0;
+
+      // we want to switch down to lower resolutions quickly to continue playback, but
+      // ensure we have some buffer before we switch up to prevent us running out of
+      // buffer while loading a higher rendition
+      // If the playlist is live, then we want to not take low water line into account.
+      // This is because in LIVE, the player plays 3 segments from the end of the
+      // playlist, and if `BUFFER_LOW_WATER_LINE` is greater than the duration availble
+      // in those segments, a viewer will never experience a rendition upswitch.
+      // For the same reason as LIVE, we ignore the low waterline when the VOD duration
+      // is below the waterline
+      if (!currentPlaylist.endList ||
+          this.duration() < Config.BUFFER_LOW_WATER_LINE ||
+          nextPlaylist.attributes.BANDWIDTH < currentPlaylist.attributes.BANDWIDTH ||
+          forwardBuffer >= Config.BUFFER_LOW_WATER_LINE) {
+        this.masterPlaylistLoader_.media(nextPlaylist);
+      }
+
+      this.tech_.trigger('bandwidthupdate');
     });
     this.mainSegmentLoader_.on('progress', () => {
       this.trigger('progress');
